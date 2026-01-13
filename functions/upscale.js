@@ -1,14 +1,14 @@
 import fetch from "node-fetch";
 
-export async function handler(event, context) {
+export async function handler(event) {
   try {
-    // Decode the base64 image from the request body
     const body = JSON.parse(event.body);
-    const imageBase64 = body.image; // sent as base64 string
+    const imageBase64 = body.image;
+    const scale = body.scale || 4;
+
     const imageBuffer = Buffer.from(imageBase64, "base64");
 
-    // Call the Upscale.media (PixelBin) API
-    const apiRes = await fetch("https://api.upscale.media/v1/enhance", {
+    const apiRes = await fetch(`https://api.upscale.media/v1/enhance?scale=${scale}`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${process.env.UPSCALE_API_KEY}`,
@@ -28,7 +28,6 @@ export async function handler(event, context) {
       statusCode: 200,
       body: JSON.stringify({ image: upscaledBase64 })
     };
-
   } catch (err) {
     console.error(err);
     return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
