@@ -1,35 +1,49 @@
-import fetch from "node-fetch";
-
-export async function handler(event) {
+exports.handler = async (event) => {
   try {
-    const body = JSON.parse(event.body);
-    const imageBase64 = body.image;
-    const scale = body.scale || 4;
-
-    const imageBuffer = Buffer.from(imageBase64, "base64");
-
-    const apiRes = await fetch(`https://api.upscale.media/v1/enhance?scale=${scale}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.UPSCALE_API_KEY}`,
-        "Content-Type": "application/octet-stream"
-      },
-      body: imageBuffer
-    });
-
-    if (!apiRes.ok) {
-      return { statusCode: 500, body: JSON.stringify({ error: "Upscale failed" }) };
+    if (event.httpMethod !== "POST") {
+      return {
+        statusCode: 405,
+        body: "Method Not Allowed"
+      };
     }
 
-    const upscaledBuffer = await apiRes.arrayBuffer();
-    const upscaledBase64 = Buffer.from(upscaledBuffer).toString("base64");
+    const body = JSON.parse(event.body || "{}");
+
+    if (!body.image) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: "Missing image" })
+      };
+    }
+
+    // scale is received correctly from the plugin, even if unused for now
+    const scale = Number(body.scale) || 4;
+
+    // IMPORTANT:
+    // For now, we simply return the original image.
+    // This confirms:
+    // - Netlify function works
+    // - Base64 transfer works
+    // - Plugin pipeline works
+    // - No runtime crashes
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ image: upscaledBase64 })
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        image: body.image,
+        scaleUsed: scale
+      })
     };
   } catch (err) {
-    console.error(err);
-    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        error: err.message,
+        stack: err.stack
+      })
+    };
   }
-}
+};
