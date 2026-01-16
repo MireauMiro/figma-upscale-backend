@@ -1,49 +1,43 @@
 exports.handler = async (event) => {
-  try {
-    if (event.httpMethod !== "POST") {
-      return {
-        statusCode: 405,
-        body: "Method Not Allowed"
-      };
-    }
+  const headers = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Content-Type": "application/json"
+  };
 
+  if (event.httpMethod === "OPTIONS") {
+    return { statusCode: 200, headers };
+  }
+
+  if (event.httpMethod !== "POST") {
+    return { statusCode: 405, headers, body: "Method Not Allowed" };
+  }
+
+  try {
     const body = JSON.parse(event.body || "{}");
 
     if (!body.image) {
       return {
         statusCode: 400,
+        headers,
         body: JSON.stringify({ error: "Missing image" })
       };
     }
 
-    // scale is received correctly from the plugin, even if unused for now
-    const scale = Number(body.scale) || 4;
-
-    // IMPORTANT:
-    // For now, we simply return the original image.
-    // This confirms:
-    // - Netlify function works
-    // - Base64 transfer works
-    // - Plugin pipeline works
-    // - No runtime crashes
-
     return {
       statusCode: 200,
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers,
       body: JSON.stringify({
         image: body.image,
-        scaleUsed: scale
+        scaleUsed: Number(body.scale) || 4
       })
     };
   } catch (err) {
     return {
       statusCode: 500,
-      body: JSON.stringify({
-        error: err.message,
-        stack: err.stack
-      })
+      headers,
+      body: JSON.stringify({ error: err.message })
     };
   }
 };
